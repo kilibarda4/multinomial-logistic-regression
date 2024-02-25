@@ -8,7 +8,7 @@ This script contains an implementation of a Multinomial Logistic Regression mode
 The model is written from scratch without use of sklearn or similar libraries.
 
 
-Testing of the model is performed with 10-fold cross-validation
+Testing of the model is performed with 10-fold cross-validation.
 
 
 ## Requirements
@@ -42,6 +42,21 @@ This will execute the script and output the results to your command line.
 
 ## Functionality
 
-The script reads in a dataset, preprocesses the text data, and maps the class names to numbers. It counts the occurrences of each unique word in the descriptions and selects the 1000 most common words as features. The descriptions are then transformed into a matrix of features. The data is split into a training set and a test set (90/10 split, which can be changed according to requirements). The Logistic Regression model is trained on the training set using Stochastic Gradient Descent and the Cross Entropy Loss function. The trained model is used to predict the categories of the test set. The performance of the model is evaluated using accuracy, precision, recall, and F1 score. A confusion matrix is also plotted to visualize the performance of the model.
+- Preprocessing:
+    - Data is turned into lowercase
+    - Stopwords are removed using a nlkt library function
+    - All numbers are treated as 'someNumber' to reduce dimensionality of the problem
+    - Most common 1000 words are extracted after preprocessing and used as features
 
-Please note that the script assumes that the input data is in the following format: CSV file containing class names in column one and descriptions in column two. Please refer to the comments in the script for more details on the expected input format.
+- Training/Testing:
+    - The model is trained using the .train function with parameters (int num_iterations, float learning_rate) which can be fine tuned to trade between speed and accuracy
+    - Trained model is tested on unseen portion of dataset
+
+- Results (printed to terminal):
+    - Accuracy
+    - Precision
+    - Recall
+    - F1 Score
+    - Confusion Matrix plotted to visualize performance of the model
+
+Please note that the script assumes that the input data is in the following format: CSV file containing class names in column one and descriptions in column two. Please refer to the provided dataset for more details on the expected input format.
