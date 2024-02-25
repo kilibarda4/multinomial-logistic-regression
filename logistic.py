@@ -2,7 +2,6 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import re
 from nltk.corpus import stopwords
 
 #softmax function - fits the probability of output between 0 and 1
@@ -38,8 +37,8 @@ class LogisticRegreson():
     def train(self, X, y):
         for i in range(self.num_iter):
             cost, probs = self.compute_cost(X, y)
-            if i % 200 == 0:
-                print('Iteration %d: cost = %f' % (i, cost))
+            if i % 199 == 0:
+                print('Iteration: %d, Cost: %f' % (i, cost))
             dweights, dbias = self.compute_gradients(X, y, probs)
             self.weights -= self.learning_rate * dweights
             self.bias -= self.learning_rate * dbias
@@ -83,33 +82,6 @@ descriptions = [description.split() for description in data.iloc[:, 1]]
 X = transform_to_features(descriptions, features)
 y = data.iloc[:, 0].values.astype(int)
 
-# Get the number of total samples
-num_samples = X.shape[0]
-
-# Generate a list of indices from 0 to num_samples
-indices = np.arange(num_samples)
-
-# Shuffle the indices
-np.random.shuffle(indices)
-
-# Calculate the size of the test set
-test_size = int(num_samples * 0.1)
-
-# Split the indices into train and test indices
-train_indices = indices[test_size:]
-test_indices = indices[:test_size]
-
-# Use the train and test indices to create the train and test sets
-X_train = X[train_indices]
-X_test = X[test_indices]
-y_train = y[train_indices]
-y_test = y[test_indices]
-
-# ADJUST THE LEARNING RATE AND NUMBER OF ITERATIONS TO GET THE BEST RESULTS
-model = LogisticRegreson(num_iter=1000, learning_rate=0.44)
-model.train(X_train, y_train)
-y_pred = model.predict(X_test)
-
 # Accuracy: (true positives + true negatives) / total predictions
 # This method generates the ability of the model to predict the correct class
 def calculate_accuracy(y_true, y_pred):
@@ -142,34 +114,71 @@ def calculate_recall(y_true, y_pred):
         recall += true_positives / (true_positives + false_negatives + 1e-10)
     return recall / num_classes
 
-# plot the confusion matrix
-def plot_confusion_matrix(y_true, y_pred):
+# Calculate the confusion matrix
+def calculate_confusion_matrix(y_true, y_pred):
     num_classes = len(np.unique(y_true))
     confusion_matrix = np.zeros((num_classes, num_classes))
     for i in range(len(y_true)):
         confusion_matrix[y_true[i], y_pred[i]] += 1
+    return confusion_matrix
 
-    plt.imshow(confusion_matrix, interpolation='nearest', cmap=plt.cm.Blues)
-    plt.title('Confusion Matrix')
+# plot the confusion matrix
+def plot_confusion_matrix(cm):
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.title('Average Confusion Matrix')
     plt.colorbar()
-    tick_marks = np.arange(num_classes)
-    plt.xticks(tick_marks, range(num_classes))
-    plt.yticks(tick_marks, range(num_classes))
+    tick_marks = np.arange(cm.shape[0])
+    plt.xticks(tick_marks, range(cm.shape[0]))
+    plt.yticks(tick_marks, range(cm.shape[0]))
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.show()
 
-# Print the results
-accuracy = calculate_accuracy(y_test, y_pred)
-print('Accuracy:', accuracy)
+# k-fold cross validation
+# This method splits the data into k equal parts and uses k-1 parts for training and 1 part for testing
+def k_fold_cross_validation(X, y, model, k=10):
+    num_samples = X.shape[0]
+    fold_size = num_samples // k
+    indices = np.arange(num_samples)
+    np.random.shuffle(indices)
+    accuracy_scores = []
+    precision_scores = []
+    recall_scores = []
+    total_cm = np.zeros((len(np.unique(y)), len(np.unique(y))))
 
-precision = calculate_precision(y_test, y_pred)
-print('Precision:', precision)
+    for i in range(k):
+        # Generate the indices for the test set
+        test_indices = indices[i*fold_size:(i+1)*fold_size]
+        # Generate the indices for the train set
+        train_indices = np.concatenate((indices[:i*fold_size], indices[(i+1)*fold_size:]))
+        # Create the train and test sets
+        X_train, X_test = X[train_indices], X[test_indices]
+        y_train, y_test = y[train_indices], y[test_indices]
+        # Train the model
+        model.train(X_train, y_train)
+        # Predict the labels for the test set
+        y_pred = model.predict(X_test)
+        # Calculate the accuracy, precision, and recall of the model
+        accuracy = calculate_accuracy(y_test, y_pred)
+        precision = calculate_precision(y_test, y_pred)
+        recall = calculate_recall(y_test, y_pred)
+        # Calculate the confusion matrix
+        confusion = calculate_confusion_matrix(y_test, y_pred)
+        total_cm += confusion
+        # Append the scores to the respective lists
+        accuracy_scores.append(accuracy)
+        precision_scores.append(precision)
+        recall_scores.append(recall)
 
-recall = calculate_recall(y_test, y_pred)
-print('Recall:', recall)
+    # Return the mean of the scores
+    return np.mean(accuracy_scores), np.mean(precision_scores), np.mean(recall_scores), total_cm / k
 
-f1 = 2 * (precision * recall) / (precision + recall)
-print('F1 Score:', f1)
+# Use the model and print the results
+model = LogisticRegreson(num_iter=200, learning_rate=0.44)
+mean_accuracy, mean_precision, mean_recall, average_confusion = k_fold_cross_validation(X, y, model, k=10)
+print('Mean Accuracy:', mean_accuracy)
+print('Mean Precision:', mean_precision)
+print('Mean Recall:', mean_recall)
+print('F1 Score:', 2 * (mean_precision * mean_recall) / (mean_precision + mean_recall))
+plot_confusion_matrix(average_confusion)
 
-plot_confusion_matrix(y_test, y_pred)
