@@ -1,4 +1,4 @@
-# Multinomial Logistic Regression From Scratch (No, really, from scratch)
+# Multinomial Logistic Regression From Scratch (no, really, from scratch)
 
 ## Overview
 
